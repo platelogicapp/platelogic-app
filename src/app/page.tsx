@@ -339,8 +339,11 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-700 pt-8 text-center text-sm">
-            <p>&copy; 2024 PlateLogic. All rights reserved.</p>
+          <div className="border-t border-gray-700 pt-8 flex items-center justify-between text-sm">
+            <p>&copy; 2026 PlateLogic. All rights reserved.</p>
+            <Link href="/admin" className="text-gray-600 hover:text-gray-400 transition text-xs">
+              Admin
+            </Link>
           </div>
         </div>
       </footer>
