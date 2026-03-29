@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface OnboardingStep {
   step: number;
@@ -69,16 +70,72 @@ export default function OnboardingPage() {
     );
   };
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
   const handleComplete = async () => {
-    // In a real app, this would save to database
-    console.log({
-      restaurantName,
-      address,
-      cuisineType,
-      avgCovers,
-      ingredients: selectedIngredients,
-    });
-    router.push('/dashboard');
+    setSaving(true);
+    setSaveError('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      // Create restaurant
+      const { data: restaurant, error: restError } = await supabase
+        .from('restaurants')
+        .insert({
+          name: restaurantName,
+          address,
+          cuisine_type: cuisineType,
+          avg_daily_covers: parseInt(avgCovers) || 100,
+          owner_id: user.id,
+          settings: {},
+        })
+        .select()
+        .single();
+
+      if (restError) {
+        setSaveError(restError.message);
+        setSaving(false);
+        return;
+      }
+
+      // Create team_members row (owner)
+      await supabase.from('team_members').insert({
+        restaurant_id: restaurant.id,
+        user_id: user.id,
+        role: 'owner',
+        status: 'active',
+      });
+
+      // Seed selected ingredients
+      const ingredientRows = selectedIngredients.map((name) => {
+        const found = COMMON_INGREDIENTS.find((i) => i.name === name);
+        return {
+          restaurant_id: restaurant.id,
+          name,
+          category: found?.category || 'Other',
+          unit: 'lbs',
+          cost_per_unit: found?.cost || 0,
+          is_active: true,
+        };
+      });
+
+      if (ingredientRows.length > 0) {
+        await supabase.from('ingredients').insert(ingredientRows);
+      }
+
+      router.push('/dashboard');
+    } catch (err) {
+      setSaveError('Failed to complete setup. Please try again.');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const steps: OnboardingStep[] = [
@@ -314,10 +371,16 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
+              {saveError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+                  {saveError}
+                </div>
+              )}
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-900 font-semibold">✓ You're all set!</p>
+                <p className="text-green-900 font-semibold">Ready to go!</p>
                 <p className="text-green-800 text-sm mt-1">
-                  Your PlateLogic account is ready. Start logging waste and tracking costs immediately.
+                  Click "Complete Setup" to create your restaurant and start tracking waste.
                 </p>
               </div>
             </div>
@@ -347,9 +410,10 @@ export default function OnboardingPage() {
           ) : (
             <button
               onClick={handleComplete}
-              className="flex-1 px-6 py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-light transition"
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-light transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Complete Setup
+              {saving ? 'Setting up...' : 'Complete Setup'}
             </button>
           )}
         </div>

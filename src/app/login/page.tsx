@@ -26,7 +26,21 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        router.push('/dashboard');
+        // Check if user has a restaurant (returning user) or needs onboarding
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: restaurants } = await supabase
+            .from('restaurants')
+            .select('id')
+            .eq('owner_id', user.id)
+            .limit(1);
+
+          if (restaurants && restaurants.length > 0) {
+            router.push('/dashboard');
+          } else {
+            router.push('/onboarding');
+          }
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred');

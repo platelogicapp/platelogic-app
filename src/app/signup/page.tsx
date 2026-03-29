@@ -35,6 +35,9 @@ export default function SignupPage() {
       const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: { restaurant_name: restaurantName },
+        },
       });
 
       if (signupError) {
@@ -43,9 +46,14 @@ export default function SignupPage() {
       }
 
       if (data.user) {
-        // Store restaurant name in local state for onboarding
         sessionStorage.setItem('restaurantName', restaurantName);
-        router.push('/onboarding');
+        // If email confirmation is disabled, user is logged in immediately
+        if (data.session) {
+          router.push('/onboarding');
+        } else {
+          // Email confirmation is enabled - show message
+          setError('Check your email for a confirmation link, then sign in.');
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred');
