@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
-const ADMIN_EMAIL = 'mehtakrishna13@gmail.com';
+const ADMIN_EMAIL = 'platelogic.app@gmail.com';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
