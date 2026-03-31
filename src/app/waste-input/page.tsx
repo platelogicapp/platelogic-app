@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import VoiceWasteLogger from '@/components/VoiceWasteLogger';
 
 interface Ingredient {
   id: string;
@@ -212,6 +213,19 @@ export default function WasteInputPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold text-primary">Log Waste</h1>
+            {ingredients.length > 0 && restaurantId && (
+              <VoiceWasteLogger
+                ingredients={ingredients}
+                restaurantId={restaurantId}
+                onWasteLogged={(entry) => {
+                  setTodaysEntries(prev => [...prev, entry]);
+                  setFlashingId(entry.ingredient_id);
+                  setTimeout(() => setFlashingId(null), 300);
+                  setSuccessMessage(`Voice logged: ${entry.quantity} ${entry.ingredient_name}`);
+                  setTimeout(() => setSuccessMessage(''), 2000);
+                }}
+              />
+            )}
           </div>
 
           {/* Running Total */}
